@@ -1,10 +1,10 @@
 #include "flappy_bird.h"
-#define OBS_SIZE 121
+#define OBS_SIZE 160
 #define NUM_ATNS 1
 #define ACT_SIZES {5}
 #define OBS_TENSOR_T ByteTensor
 
-#define Env Squared
+#define Env Squared // O el nombre que le des a tu estructura en el wrapper de PufferLib
 #include "vecenv.h"
 
 void my_init(Env* env, Dict* kwargs) {
