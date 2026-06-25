@@ -39,7 +39,8 @@ typedef struct {
     int tick;
     int x;
     int y;
-    unsigned int rng_state;
+    unsigned int rng;
+    int num_agents;
 } BirdEnv;
 
 // Función corregida para actualizar estadísticas de entrenamiento
@@ -68,7 +69,7 @@ void duck_hunt(BirdEnv* env) {
     int spacing = 2; 
     int start_col = 2; 
 
-    unsigned int state = env->rng_state; 
+    unsigned int state = env->rng; 
     if (state == 0) state = 1; 
 
     for (int i = 0; i < pipe_count; i++) { 
@@ -82,7 +83,7 @@ void duck_hunt(BirdEnv* env) {
             env->observation[r * cols + col] = (r == hole_row) ? GOAL : PIPE; 
         }
     }
-    env->rng_state = state;
+    env->rng = state;
 }
 
 // Avanzar un paso en la simulación
@@ -160,7 +161,7 @@ void c_render(BirdEnv* env) {
             int tex = env->observation[i * cols + j];
             if (tex == EMPTY) continue;
             
-            Color color;
+            Color color = (Color){255, 255, 255, 255}; // Blanco por defecto
             if (tex == PIPE)        color = (Color){187, 0, 0, 255};    // Rojo
             else if (tex == GOAL)   color = (Color){0, 187, 0, 255};    // Verde
             else if (tex == BIRD)   color = (Color){0, 0, 187, 255};    // Azul
