@@ -4,7 +4,7 @@
 #define ACT_SIZES {5}
 #define OBS_TENSOR_T ByteTensor
 
-#define Env Squared // O el nombre que le des a tu estructura en el wrapper de PufferLib
+#define Env BirdEnv // O el nombre que le des a tu estructura en el wrapper de PufferLib
 #include "vecenv.h"
 
 void my_init(Env* env, Dict* kwargs) {
