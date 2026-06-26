@@ -4,7 +4,7 @@ import numpy as np
 from tqdm import tqdm
 from matplotlib import pyplot as plt
 import time
-
+import pickle
 
 class HalfCheetahDiscretized:
     def __init__(
@@ -94,13 +94,14 @@ class HalfCheetahDiscretized:
         self.epsilon = max(self.final_epsilon, self.epsilon - self.epsilon_decay)
 
 
+
 # --- CONFIGURACIÓN Y ENTRENAMIENTO ---
 
 # Reducimos los episodios porque Q-learning tabular sufre mucho con la maldición de la dimensionalidad
 learning_rate = 0.05       
-n_episodes = 12500        # 100k es demasiado para una tabla en este entorno continuo
+n_episodes = 20000        # 100k es demasiado para una tabla en este entorno continuo
 start_epsilon = 1.0         
-epsilon_decay = start_epsilon / (n_episodes * 0.7)  # Decaer durante el primer 80% de episodios
+epsilon_decay = start_epsilon / (n_episodes * 0.8)  # Decaer durante el primer 80% de episodios
 final_epsilon = 0.05         
 
 # Crear entorno HalfCheetah (Asegúrate de tener v4 o v5 instalado, típicamente 'HalfCheetah-v4' o 'HalfCheetah-v5')
@@ -137,6 +138,13 @@ for episode in tqdm(range(n_episodes)):
         obs = next_obs
 
     agent.decay_epsilon()
+
+# --- GUARDAR MODELO ---
+
+filename = "half_cheetah_q_table.pkl"
+with open(filename,"wb") as f:
+    pickle.dump(dict(agent.q_values), f)
+print(f"Modelo guardado en {filename}")
 
 # --- PLOTTING DE RESULTADOS ---
 # Graficar la recompensa promedio por episodio
