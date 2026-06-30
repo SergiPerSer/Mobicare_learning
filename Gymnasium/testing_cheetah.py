@@ -1,10 +1,9 @@
-from collections import defaultdict
-import gymnasium as gym
-import numpy as np
-from tqdm import tqdm
 from matplotlib import pyplot as plt
 import time
 import pickle
+from collections import defaultdict
+import gymnasium as gym
+import numpy as np
 
 class HalfCheetahDiscretized:
     def __init__(
@@ -93,106 +92,72 @@ class HalfCheetahDiscretized:
     def decay_epsilon(self):
         self.epsilon = max(self.final_epsilon, self.epsilon - self.epsilon_decay)
 
-
-
-# --- CONFIGURACIÓN Y ENTRENAMIENTO ---
-
-# Reducimos los episodios porque Q-learning tabular sufre mucho con la maldición de la dimensionalidad
-learning_rate = 0.05       
-n_episodes = 20000        # 100k es demasiado para una tabla en este entorno continuo
-start_epsilon = 1.0         
-epsilon_decay = start_epsilon / (n_episodes * 0.8)  # Decaer durante el primer 80% de episodios
-final_epsilon = 0.05         
-
-# Crear entorno HalfCheetah (Asegúrate de tener v4 o v5 instalado, típicamente 'HalfCheetah-v4' o 'HalfCheetah-v5')
-env = gym.make("HalfCheetah-v5") 
-env = gym.wrappers.RecordEpisodeStatistics(env, buffer_length=n_episodes)
-
-agent = HalfCheetahDiscretized(
-    env=env,
-    learning_rate=learning_rate,
-    initial_epsilon=start_epsilon,
-    epsilon_decay=epsilon_decay,
-    final_epsilon=final_epsilon,
-    bins_per_dim=3 # 3 bins por 17 dimensiones = 3^17 estados posibles. ¡Ya es un número enorme!
-)
-
-for episode in tqdm(range(n_episodes)):
-    obs, info = env.reset()
-    done = False
-
-    while not done:
-        # 1. Obtener índice de la acción discreta
-        action_idx = agent.get_action(obs)
+def test_agent_visual(agent, num_episodes=3):
+    """Prueba al agente visualizando su comportamiento en tiempo real."""
+    print("\nIniciando visualización en tiempo real...")
+    
+    # Creación de un entorno específico para renderizar
+    # Usamos render_mode="human" para que abra la ventana gráfica
+    visual_env = gym.make("HalfCheetah-v5")
+    
+    # Desactivamos la exploración para ver su mejor comportamiento aprendido
+    old_epsilon = agent.epsilon
+    agent.epsilon = 0.0  
+    rewards = []
+    for episode in range(num_episodes):
+        obs, info = visual_env.reset()
+        episode_reward = 0
+        done = False
         
-        # 2. Convertir el índice a la acción continua real que entiende HalfCheetah
-        continuous_action = agent.action_mapping[action_idx]
+        print(f"Jugando episodio {episode + 1}...")
 
-        # 3. Ejecutar en el entorno
-        next_obs, reward, terminated, truncated, info = env.step(continuous_action)
+        while not done:
+            # 1. El agente elige la acción según lo aprendido
+            action_idx = agent.get_action(obs, evaluation=True)
+            continuous_action = agent.action_mapping[action_idx]
+            
+            # 2. Se ejecuta la acción en el entorno visual
+            obs, reward, terminated, truncated, info = visual_env.step(continuous_action)
+            episode_reward += reward
+            done = terminated or truncated
+        rewards.append(episode_reward)
+            
+            # 3. Controlar los FPS (opcional)
+            # MuJoCo suele encargarse del framerate, pero si va "demasiado rápido", 
+            # puedes descomentar la siguiente línea para ralentizarlo a ~60 FPS:
+            # time.sleep(1/60)
 
-        # 4. Actualizar la tabla usando el índice discreto
-        agent.update(obs, action_idx, reward, terminated, next_obs)
+        print(f"Episodio {episode + 1} terminado. Recompensa: {episode_reward:.2f}")
 
-        done = terminated or truncated
-        obs = next_obs
+    # Restauramos el epsilon original del agente y cerramos la ventana
+    agent.epsilon = old_epsilon
+    visual_env.close()
+    return rewards
 
-    agent.decay_epsilon()
+# 1. Instancias el entorno y el agente desde cero
+env = gym.make("HalfCheetah-v5")
+agent = HalfCheetahDiscretized(env=env, learning_rate=0.05, initial_epsilon=0.0, epsilon_decay=0.0, final_epsilon=0.0)
+num_episodes = 50
+list_num_episodes = list(range(num_episodes))
 
-# --- GUARDAR MODELO ---
-
+# 2. Cargas los pesos guardados
 filename = "half_cheetah_q_table.pkl"
-with open(filename,"wb") as f:
-    pickle.dump(dict(agent.q_values), f)
-print(f"Modelo guardado en {filename}")
+with open(filename, "rb") as f:
+    raw_dict = pickle.load(f)
 
-# --- PLOTTING DE RESULTADOS ---
-# Graficar la recompensa promedio por episodio
+# 3. Asignas los valores cargados reconstruyendo el defaultdict
+agent.q_values = defaultdict(lambda: np.zeros(agent.n_actions), raw_dict)
+print(type(agent.q_values))
+print("¡Pesos cargados con éxito!")
 
-def get_moving_avgs(arr, window, convolution_mode):
-    """Compute moving average to smooth noisy data."""
-    return np.convolve(
-        np.array(arr).flatten(),
-        np.ones(window),
-        mode=convolution_mode
-    ) / window
-
-
-rolling_length = 500
-fig, axs = plt.subplots(ncols=3, figsize=(12, 5))
-
-# Episode rewards (win/loss performance)
-axs[0].set_title("Episode rewards")
-reward_moving_average = get_moving_avgs(
-    env.return_queue,
-    rolling_length,
-    "valid"
-)
-axs[0].plot(range(len(reward_moving_average)), reward_moving_average)
-axs[0].set_ylabel("Average Reward")
-axs[0].set_xlabel("Episode")
-
-# Episode lengths (how many actions per hand)
-axs[1].set_title("Episode lengths")
-length_moving_average = get_moving_avgs(
-    env.length_queue,
-    rolling_length,
-    "valid"
-)
-axs[1].plot(range(len(length_moving_average)), length_moving_average)
-axs[1].set_ylabel("Average Episode Length")
-axs[1].set_xlabel("Episode")
-
-# Training error (how much we're still learning)
-axs[2].set_title("Training Error")
-training_error_moving_average = get_moving_avgs(
-    agent.training_error,
-    rolling_length,
-    "same"
-)
-axs[2].plot(range(len(training_error_moving_average)), training_error_moving_average)
-axs[2].set_ylabel("Temporal Difference Error")
-axs[2].set_xlabel("Step")
-
-plt.tight_layout()
+# 4. Ejecutas el test visual directamente
+rewards = test_agent_visual(agent, num_episodes=num_episodes)
+print(rewards)
+fig, axs = plt.subplots(ncols=1, figsize=(12, 5))
+axs.set_title("Recompensa por episodio durante la prueba visual")
+axs.plot(list_num_episodes, rewards, label="Recompensa por paso")
+axs.set_xlabel("Paso")
+axs.set_ylabel("Recompensa")
+plt.xticks(np.arange(0, num_episodes+1, 1))
+axs.legend()
 plt.show()
