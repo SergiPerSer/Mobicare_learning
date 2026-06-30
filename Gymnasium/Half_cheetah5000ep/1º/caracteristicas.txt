@@ -1,0 +1,5 @@
+learning_rate = 0.05
+n_episodes = 5000       
+start_epsilon = 1.0
+epsilon_decay = start_epsilon / (n_episodes * 0.8)  
+final_epsilon = 0.05

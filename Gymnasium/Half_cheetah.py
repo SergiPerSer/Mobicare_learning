@@ -98,8 +98,8 @@ class HalfCheetahDiscretized:
 # --- CONFIGURACIÓN Y ENTRENAMIENTO ---
 
 # Reducimos los episodios porque Q-learning tabular sufre mucho con la maldición de la dimensionalidad
-learning_rate = 0.05       
-n_episodes = 20000        # 100k es demasiado para una tabla en este entorno continuo
+learning_rate = 1     
+n_episodes = 5000        # 100k es demasiado para una tabla en este entorno continuo
 start_epsilon = 1.0         
 epsilon_decay = start_epsilon / (n_episodes * 0.8)  # Decaer durante el primer 80% de episodios
 final_epsilon = 0.05         

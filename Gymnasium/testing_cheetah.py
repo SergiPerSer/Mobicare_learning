@@ -99,6 +99,8 @@ def test_agent_visual(agent, num_episodes=3):
     # Creación de un entorno específico para renderizar
     # Usamos render_mode="human" para que abra la ventana gráfica
     visual_env = gym.make("HalfCheetah-v5")
+    #visual_env = gym.make("HalfCheetah-v5",render_mode="human")
+
     
     # Desactivamos la exploración para ver su mejor comportamiento aprendido
     old_epsilon = agent.epsilon
@@ -136,8 +138,9 @@ def test_agent_visual(agent, num_episodes=3):
 
 # 1. Instancias el entorno y el agente desde cero
 env = gym.make("HalfCheetah-v5")
+#env = gym.make("HalfCheetah-v5", render_mode="human")
 agent = HalfCheetahDiscretized(env=env, learning_rate=0.05, initial_epsilon=0.0, epsilon_decay=0.0, final_epsilon=0.0)
-num_episodes = 50
+num_episodes =  50
 list_num_episodes = list(range(num_episodes))
 
 # 2. Cargas los pesos guardados
@@ -159,5 +162,6 @@ axs.plot(list_num_episodes, rewards, label="Recompensa por paso")
 axs.set_xlabel("Paso")
 axs.set_ylabel("Recompensa")
 plt.xticks(np.arange(0, num_episodes+1, 1))
+plt.yticks(np.arange(-400, 2000, 100))
 axs.legend()
 plt.show()
